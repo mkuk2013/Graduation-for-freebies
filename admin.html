@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graduation Test Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --secondary-color: #6A82FB;
+            --accent-color: #FFC107;
+            --success-color: #4CAF50;
+            --danger-color: #F44347;
+            --warning-color: #FF9800;
+            
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F8F9FA;
+            --border-color: #E0E0E0;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align items to the start for better content flow */
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background-color: var(--bg-primary);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-weight: 600;
+            font-size: 2.2em;
+        }
+
+        /* Admin Login Section */
+        #admin-login {
+            background-color: #f0f4f8;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: left;
+        }
+
+        #admin-login h2 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 500;
+            font-size: 1.8em;
+        }
+
+        #admin-login label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        #admin-login input[type="email"],
+        #admin-login input[type="password"] {
+            width: calc(100% - 22px); /* Adjust for padding and border */
+            padding: 12px 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1em;
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+
+        #admin-login button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #admin-login button:hover {
+            background-color: #3a7bd5;
+        }
+
+        .error-message {
+            color: var(--danger-color);
+            margin-top: 15px;
+            text-align: center;
+            font-size: 0.95em;
+        }
+
+        /* Admin Dashboard Section */
+        #admin-dashboard {
+            display: none; /* Hidden by default until logged in */
+            padding-top: 20px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap; /* Allow wrapping for smaller screens */
+        }
+
+        .dashboard-header h2 {
+            margin: 0;
+            color: var(--primary-color);
+            font-weight: 500;
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        .dashboard-actions {
+            display: flex;
+            gap: 10px; /* Space between buttons */
+            flex-wrap: wrap;
+            margin-top: 10px; /* Adjust spacing if wrapped */
+            justify-content: flex-end; /* Align buttons to the right */
+        }
+
+        .dashboard-header button {
+            padding: 10px 15px;
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            white-space: nowrap; /* Prevent text wrapping inside buttons */
+        }
+
+        .dashboard-header button:hover {
+            background-color: #c0392b;
+        }
+
+        /* New button styles for Refresh and PDF */
+        #refresh-data-button {
+            background-color: var(--primary-color);
+        }
+        #refresh-data-button:hover {
+            background-color: #3a7bd5;
+        }
+
+        #delete-all-data-button {
+            background-color: var(--danger-color);
+        }
+        #delete-all-data-button:hover {
+            background-color: #c0392b;
+        }
+
+        #save-pdf-button {
+            background-color: var(--success-color);
+        }
+        #save-pdf-button:hover {
+            background-color: #449d48;
+        }
+
+
+        .user-table-container {
+            overflow-x: auto;
+            margin-top: 20px; /* Adjusted margin-top to account for new controls above */
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px; /* Ensure table is wide enough for small screens with overflow */
+        }
+
+        .user-table th, .user-table td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-table th {
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            position: sticky; /* Make headers sticky for scrolling content */
+            top: 0;
+            z-index: 1;
+        }
+
+        .user-table tbody tr:nth-child(even) {
+            background-color: #fbfdff;
+        }
+
+        .user-table tbody tr:hover {
+            background-color: #eef5ff;
+        }
+
+        .user-table td {
+            font-size: 0.95em;
+            color: var(--text-primary);
+        }
+
+        .action-btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-btn:hover {
+            background-color: #c82333;
+        }
+        
+        .loading-spinner, .message {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 1.1em;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner i {
+            font-size: 2em;
+            color: var(--primary-color);
+            margin-right: 10px;
+        }
+
+        /* Status Colors - Added !important */
+        .status-pass {
+            color: var(--success-color) !important; /* Green */
+            font-weight: 600;
+        }
+
+        .status-fail {
+            color: var(--danger-color) !important; /* Red */
+            font-weight: 600;
+        }
+
+        /* Improved Table Hover and Border */
+        .user-table tbody tr {
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .user-table tbody tr:hover {
+            border-left-color: var(--primary-color);
+            border-right-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        /* Top Pagination Info */
+        .top-pagination-info {
+            display: flex;
+            justify-content: flex-end; /* Align to the right */
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px; /* Space between controls and table */
+            flex-wrap: wrap;
+            font-size: 0.95em;
+            color: var(--text-secondary);
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .top-pagination-info label {
+            margin-left: 10px;
+        }
+        .top-pagination-info select {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.95em;
+            cursor: pointer;
+        }
+
+
+        /* Bottom Pagination Controls */
+        .pagination-controls {
+            display: flex;
+            justify-content: center; /* Center the buttons */
+            align-items: center;
+            margin-top: 20px;
+            padding: 10px 0;
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap; /* Allow wrapping for smaller screens */
+            gap: 10px; /* Space between buttons */
+        }
+        
+        .pagination-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pagination-buttons button {
+            padding: 8px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, opacity 0.3s ease;
+        }
+
+        .pagination-buttons button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .pagination-buttons button:hover:not(:disabled) {
+            background-color: #3a7bd5;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .dashboard-actions {
+                width: 100%;
+                justify-content: flex-start;
+                margin-top: 15px;
+            }
+            .dashboard-header button {
+                width: auto; /* Allow buttons to size naturally */
+                flex-grow: 1; /* Make buttons grow to fill space */
+            }
+
+            .top-pagination-info {
+                justify-content: center;
+            }
+
+            .pagination-controls {
+                flex-direction: column;
+            }
+            .pagination-info { /* This class is no longer used for the top info, but keep for future use if needed */
+                width: 100%;
+                justify-content: center;
+            }
+            .pagination-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
+
+        <div id="admin-login">
+            <h2>Admin Login</h2>
+            <form id="login-form">
+                <label for="admin-email">Email:</label>
+                <input type="email" id="admin-email" placeholder="Enter admin email" required>
+                
+                <label for="admin-password">Password:</label>
+                <input type="password" id="admin-password" placeholder="Enter password" required>
+                
+                <button type="submit" id="login-button">Login</button>
+                <p id="login-error-message" class="error-message" style="display: none;"></p>
+            </form>
+        </div>
+
+        <div id="admin-dashboard">
+            <div class="dashboard-header">
+                <h2>User Data Overview</h2>
+                <div class="dashboard-actions">
+                    <button id="refresh-data-button"><i class="fas fa-sync-alt"></i> Refresh Data</button>
+                    <button id="delete-all-data-button"><i class="fas fa-trash-alt"></i> Delete All Data</button>
+                    <button id="save-pdf-button"><i class="fas fa-file-pdf"></i> Save as PDF</button>
+                    <button id="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </div>
+            </div>
+            
+            <div class="top-pagination-info">
+                Total Records: <span id="totalRecordsSpan">0</span>
+                <label for="recordsPerPageSelect">Records per page:</label>
+                <select id="recordsPerPageSelect">
+                    <option value="10">10</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="500">500</option>
+                </select>
+            </div>
+
+            <div id="loading" class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i> Loading users...
+            </div>
+
+            <div id="userTableContainer" class="user-table-container" style="display: none;">
+                <table class="user-table" id="userTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Score</th>
+                            <th>Status</th>
+                            <th>Date & Time</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        </tbody>
+                </table>
+            </div>
+            
+            <div id="noUsersMessage" class="message" style="display: none;">
+                No users found.
+            </div>
+
+            <div class="pagination-controls">
+                <div class="pagination-buttons">
+                    <button id="prevPageBtn" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                    <span id="currentPageSpan">Page 1 of 1</span>
+                    <button id="nextPageBtn" disabled>Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        // Your Firebase configuration (REPLACE WITH YOUR ACTUAL CONFIG!)
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+         const firebaseConfig = {
+            apiKey: "AIzaSyDL31F-90bUtUDaWBV6TmNppVYiR4Nno04",
+            authDomain: "mocktest2-4e09a.firebaseapp.com",
+            projectId: "mocktest2-4e09a",
+            storageBucket: "mocktest2-4e09a.firebasestorage.app",
+            messagingSenderId: "621047277450",
+            appId: "1:621047277450:web:3d92729d055add65f04a73",
+            measurementId: "G-X87344PJXQ"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM Elements
+        const adminLoginSection = document.getElementById('admin-login');
+        const adminDashboardSection = document.getElementById('admin-dashboard');
+        const loginForm = document.getElementById('login-form');
+        const adminEmailInput = document.getElementById('admin-email');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const loginErrorMessage = document.getElementById('login-error-message');
+        const logoutButton = document.getElementById('logout-button');
+        const refreshDataButton = document.getElementById('refresh-data-button');
+        const deleteAllDataButton = document.getElementById('delete-all-data-button');
+        const savePdfButton = document.getElementById('save-pdf-button');
+
+
+        const userTableBody = document.getElementById('userTableBody');
+        const loadingSpinner = document.getElementById('loading');
+        const userTableContainer = document.getElementById('userTableContainer');
+        const noUsersMessage = document.getElementById('noUsersMessage');
+
+        // Pagination DOM Elements
+        const totalRecordsSpan = document.getElementById('totalRecordsSpan');
+        const recordsPerPageSelect = document.getElementById('recordsPerPageSelect');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const currentPageSpan = document.getElementById('currentPageSpan');
+
+        // Pagination Variables
+        let currentPage = 1;
+        let recordsPerPage = parseInt(recordsPerPageSelect.value); // Default to 10
+        let totalRecords = 0;
+        let lastVisibleDoc = null; // Stores the last document of the current page for pagination
+        let pageHistory = [null]; // Stores the *startAfter* document for each page [null, doc10, doc20, ...]
+
+        // Auto-refresh interval variable
+        let autoRefreshInterval;
+        const AUTO_REFRESH_TIME_MS = 30000; // 30 seconds
+
+        // --- Firebase Authentication Functions ---
+
+        // Handle Admin Login
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = adminEmailInput.value;
+            const password = adminPasswordInput.value;
+            loginErrorMessage.style.display = 'none'; // Hide previous errors
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                // Auth state observer will handle UI update
+            } catch (error) {
+                console.error("Firebase Auth Error during admin login:", error);
+                loginErrorMessage.textContent = `Login failed: ${error.message}`;
+                loginErrorMessage.style.display = 'block';
+            }
+        });
+
+        // Handle Admin Logout
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await auth.signOut();
+                // Auth state observer will handle UI update
+            } catch (error) {
+                console.error("Firebase Auth Error during admin logout:", error);
+            }
+        });
+
+        // Listen for authentication state changes
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User is signed in, show dashboard
+                adminLoginSection.style.display = 'none';
+                adminDashboardSection.style.display = 'block';
+                // Initialize pagination variables and fetch first page
+                currentPage = 1;
+                pageHistory = [null]; // Start with null for the first page
+                fetchUsers(currentPage); 
+                // Start auto-refresh when logged in
+                startAutoRefresh();
+            } else {
+                // User is signed out, show login form
+                adminLoginSection.style.display = 'block';
+                adminDashboardSection.style.display = 'none';
+                userTableBody.innerHTML = ''; // Clear table when logged out
+                loginErrorMessage.style.display = 'none'; // Clear any login errors
+                // Stop auto-refresh when logged out
+                stopAutoRefresh();
+            }
+        });
+
+        // --- Auto-refresh Functions ---
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval); // Clear any existing interval
+            }
+            autoRefreshInterval = setInterval(() => {
+                console.log("Auto-refreshing data...");
+                fetchUsers(currentPage); // Refresh current page data
+            }, AUTO_REFRESH_TIME_MS);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                console.log("Auto-refresh stopped.");
+            }
+        }
+
+
+        // --- User Data Management Functions ---
+
+        // Function to get total number of documents (for total records count)
+        async function getCount() {
+            try {
+                // Note: For very large collections, getting the full count like this can be inefficient.
+                // For a scalable solution, you might maintain a counter in a separate Firestore document
+                // that gets incremented/decremented on user additions/deletions via Cloud Functions.
+                const snapshot = await db.collection('users').get();
+                return snapshot.size;
+            } catch (error) {
+                console.error("Error getting document count:", error);
+                return 0;
+            }
+        }
+
+        // Function to fetch and display users with pagination
+        async function fetchUsers(page) {
+            loadingSpinner.style.display = 'flex';
+            userTableContainer.style.display = 'none';
+            noUsersMessage.style.display = 'none';
+            userTableBody.innerHTML = ''; // Clear existing data
+
+            totalRecords = await getCount(); // Always fetch the latest total count
+            const totalPages = Math.ceil(totalRecords / recordsPerPage);
+
+            prevPageBtn.disabled = (page === 1);
+            nextPageBtn.disabled = (page >= totalPages);
+            currentPageSpan.textContent = `Page ${page} of ${totalPages}`;
+            totalRecordsSpan.textContent = totalRecords;
+
+
+            try {
+                let usersRef = db.collection('users').orderBy('timestamp', 'desc'); 
+
+                if (page > 1) {
+                    // Use the stored last visible document of the previous page
+                    usersRef = usersRef.startAfter(pageHistory[page - 1]);
+                }
+
+                const snapshot = await usersRef.limit(recordsPerPage).get();
+
+                if (snapshot.empty) {
+                    noUsersMessage.style.display = 'block';
+                    loadingSpinner.style.display = 'none';
+                    return;
+                }
+
+                // Store the last document of the current page for 'Next' pagination
+                lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
+                // Only push if we are moving forward and it's a new page in history
+                if (pageHistory.length === page) {
+                    pageHistory.push(lastVisibleDoc);
+                }
+
+
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const userId = doc.id; // Document ID for deletion
+
+                    const row = userTableBody.insertRow();
+                    row.dataset.userId = userId; // Store userId on the row
+
+                    const nameCell = row.insertCell();
+                    nameCell.textContent = userData.name || 'N/A';
+
+                    const emailCell = row.insertCell();
+                    emailCell.textContent = userData.email || 'N/A';
+
+                    const scoreCell = row.insertCell();
+                    scoreCell.textContent = userData.score !== undefined ? userData.score : 'N/A';
+
+                    const statusCell = row.insertCell();
+                    const statusText = userData.status ? userData.status.toUpperCase() : 'N/A';
+                    statusCell.textContent = statusText;
+                    
+                    // Apply color based on status
+                    if (statusText === 'PASS') {
+                        statusCell.classList.add('status-pass');
+                    } else if (statusText === 'FAIL') {
+                        statusCell.classList.add('status-fail');
+                    } else {
+                        // Optional: Handle other statuses or default styling
+                        statusCell.style.color = 'var(--text-primary)'; // Default text color
+                    }
+
+
+                    const dateTimeCell = row.insertCell();
+                    if (userData.timestamp) {
+                        let date;
+                        if (userData.timestamp.toDate) {
+                            date = userData.timestamp.toDate();
+                        } else if (typeof userData.timestamp === 'string') {
+                            date = new Date(userData.timestamp);
+                        } else {
+                            date = null;
+                        }
+                        
+                        if (date && !isNaN(date.getTime())) {
+                            dateTimeCell.textContent = date.toLocaleString();
+                        } else {
+                            dateTimeCell.textContent = 'N/A';
+                        }
+                    } else {
+                        dateTimeCell.textContent = 'N/A';
+                    }
+
+                    const actionCell = row.insertCell();
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'action-btn';
+                    deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i> Delete';
+                    deleteButton.onclick = () => confirmAndDeleteUser(userId, userData.email || userId);
+                    actionCell.appendChild(deleteButton);
+                });
+
+                userTableContainer.style.display = 'block';
+
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
+                    noUsersMessage.textContent = 'Permission denied to fetch users. Check Firestore Security Rules.';
+                } else {
+                    noUsersMessage.textContent = `Error loading users: ${error.message}.`;
+                }
+                noUsersMessage.style.display = 'block';
+            } finally {
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        // Function to confirm and delete single user
+        async function confirmAndDeleteUser(userId, userIdentifier) {
+            if (confirm(`Are you sure you want to delete user: ${userIdentifier}? This action cannot be undone.`)) {
+                try {
+                    await db.collection('users').doc(userId).delete();
+                    alert(`User ${userIdentifier} deleted successfully!`);
+                    // When deleting, if the current page becomes empty or has fewer records than requested,
+                    // we might need to go back a page or re-evaluate the current page.
+                    // For simplicity, we'll re-fetch the current page.
+                    fetchUsers(currentPage); 
+                } catch (error) {
+                    console.error("Error deleting user:", error);
+                    alert(`Failed to delete user ${userIdentifier}. Error: ${error.message}`);
+                }
+            }
+        }
+
+        // --- New Button Functionality ---
+
+        // Refresh Data
+        refreshDataButton.addEventListener('click', () => {
+            currentPage = 1; // Reset to first page on refresh
+            pageHistory = [null]; // Clear page history
+            fetchUsers(currentPage);
+        });
+
+        // Delete All Data
+        deleteAllDataButton.addEventListener('click', async () => {
+            if (confirm('Are you absolutely sure you want to delete ALL user data? This action cannot be undone and will permanently remove all records.')) {
+                try {
+                    const usersRef = db.collection('users');
+                    const snapshot = await usersRef.get();
+                    const batch = db.batch();
+
+                    if (snapshot.empty) {
+                        alert('No users to delete.');
+                        return;
+                    }
+
+                    snapshot.docs.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+
+                    await batch.commit();
+                    alert('All user data deleted successfully!');
+                    currentPage = 1; // Reset page after full deletion
+                    pageHistory = [null]; // Clear page history
+                    fetchUsers(currentPage); // Refresh the table after deletion
+                } catch (error) {
+                    console.error("Error deleting all users:", error);
+                    alert(`Failed to delete all users. Error: ${error.message}`);
+                }
+            }
+        });
+
+        // Save as PDF
+        savePdfButton.addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait, 'pt' for points, 'a4' for A4 size
+
+            // Get table headers
+            const headers = Array.from(document.querySelectorAll('#userTable thead th')).map(th => th.textContent);
+            // Remove 'Action' column from PDF headers
+            const pdfHeaders = headers.filter(header => header !== 'Action');
+
+            // Get table data
+            const data = [];
+            document.querySelectorAll('#userTableBody tr').forEach(row => {
+                const rowData = [];
+                // Iterate through cells, skipping the 'Action' cell
+                Array.from(row.cells).forEach((cell, index) => {
+                    if (index < row.cells.length - 1) { // Exclude the last cell (Action)
+                        rowData.push(cell.textContent);
+                    }
+                });
+                data.push(rowData);
+            });
+
+            doc.autoTable({
+                head: [pdfHeaders],
+                body: data,
+                startY: 60, // Start table after a small margin
+                theme: 'striped', // Add striped theme for better readability
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 8,
+                    overflow: 'linebreak',
+                },
+                headStyles: {
+                    fillColor: [74, 144, 226], // Primary color for header
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                },
+                columnStyles: {
+                    // Example to set width for specific columns if needed
+                    // 0: { cellWidth: 80 }, // Name
+                    // 1: { cellWidth: 120 }, // Email
+                    // 2: { cellWidth: 50 },  // Score
+                    // 3: { cellWidth: 60 },  // Status
+                    // 4: { cellWidth: 120 }  // Date & Time
+                },
+                didDrawPage: function (data) {
+                    // Header
+                    doc.setFontSize(18);
+                    doc.setTextColor(74, 144, 226);
+                    doc.text("User Data Overview", data.settings.margin.left, 40);
+
+                    // Footer
+                    const pageCount = doc.internal.getNumberOfPages();
+                    doc.setFontSize(10);
+                    doc.setTextColor(150);
+                    doc.text('Page ' + doc.internal.getCurrentPageInfo().pageNumber + ' of ' + pageCount, data.settings.margin.left, doc.internal.pageSize.height - 30);
+                }
+            });
+
+            doc.save('user_data.pdf');
+        });
+
+        // --- Pagination Event Listeners ---
+
+        recordsPerPageSelect.addEventListener('change', (e) => {
+            recordsPerPage = parseInt(e.target.value);
+            currentPage = 1; // Reset to first page
+            pageHistory = [null]; // Clear page history
+            fetchUsers(currentPage);
+        });
+
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                // For 'Previous' pagination with Firestore, it's more complex.
+                // We're using pageHistory to store the *startAfter* document for each page.
+                // So, to go back, we need the document that *started* the previous page.
+                // If pageHistory is [null, doc10, doc20], to go from page 2 to 1, we use null as startAfter.
+                // To go from page 3 to 2, we use doc10 as startAfter.
+                // We pop the current page's startAfter doc to effectively go back in history.
+                if (pageHistory.length > currentPage) { // Ensure we don't pop the 'null' for the first page
+                    pageHistory.pop(); 
+                }
+                fetchUsers(currentPage);
+            }
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            // Firestore pagination using `startAfter`
+            currentPage++;
+            fetchUsers(currentPage);
+        });
+    </script>
+</body>
+</html>
